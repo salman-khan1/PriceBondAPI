@@ -12,6 +12,5 @@ namespace PriceBondAPI.Models.DTOS.UserDto
 
         public DateTime? RegistrationDate { get; set; }
 
-        public virtual ICollection<Bond> Bonds { get; set; } = new List<Bond>();
     }
 }

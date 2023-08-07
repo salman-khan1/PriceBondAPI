@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PriceBondAPI.Models;
 using PriceBondAPI.Models.DTOS.BondDto;
 using PriceBondAPI.Models.DTOS.DrawDto;
+using PriceBondAPI.Repositories.DrawRepository;
 
 namespace PriceBondAPI.Controllers
 {
@@ -12,16 +13,18 @@ namespace PriceBondAPI.Controllers
     public class DrawController : ControllerBase
     {
         private readonly PbdatabaseContext _context;
+        private readonly IDrawRepository _drawRepository;
 
-        public DrawController (PbdatabaseContext context)
+        public DrawController (PbdatabaseContext context,IDrawRepository drawRepository)
         {
             _context = context;
+            _drawRepository = drawRepository;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var draws = await _context.Draws.ToListAsync();
+            var draws = await _drawRepository.GetAllAsync();
 
             //DTO Mapping
             var drawDto = new List<DrawDto>();
@@ -45,7 +48,7 @@ namespace PriceBondAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var draw = await _context.Draws.FirstOrDefaultAsync(x => x.Id == id);
+            var draw = await _drawRepository.GetByIdAsync(id);
             if (draw == null)
             {
                 return BadRequest();
@@ -74,8 +77,8 @@ namespace PriceBondAPI.Controllers
                 Price=addDraw.Price,
                 DenominationId=addDraw.DenominationId,
             };
-            await _context.Draws.AddAsync(draw);
-            await _context.SaveChangesAsync();
+            draw = await _drawRepository.CreateAsync(draw);
+
 
             var drawDto = new DrawDto
             {
@@ -93,16 +96,19 @@ namespace PriceBondAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateDrawDto updateDraw)
         {
-            var draw = await _context.Draws.FirstOrDefaultAsync(x => x.Id == id);
+            var draw = new Draw
+            {
+                DrawLocation=updateDraw.DrawLocation,
+                DrawDate=updateDraw.DrawDate,
+                Price =updateDraw.Price,
+                DenominationId=updateDraw.DenominationId,
+            };
+
+            draw= await _drawRepository.UpdateAsync(id,draw);
+
             if (draw == null) { return BadRequest(); }
-            //Map Dto
 
-            draw.DrawDate = updateDraw.DrawDate;
-            draw.DrawLocation = updateDraw.DrawLocation;
-            draw.Price = updateDraw.Price;
-            draw.DenominationId = updateDraw.DenominationId;
-            await _context.SaveChangesAsync();
-
+            //Map domain to Dto
             var drawDto = new DrawDto
             {
                 Id = draw.Id,
@@ -118,14 +124,20 @@ namespace PriceBondAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var draw = await _context.Draws.FirstOrDefaultAsync(x => x.Id == id);
+            var draw = await _drawRepository.DeleteAsync(id);
             if (draw == null)
             {
                 return BadRequest();
             }
-            _context.Draws.Remove(draw);
-            await _context.SaveChangesAsync();
-            return Ok(draw);
+            var drawDto = new DrawDto 
+            {
+                Id = draw.Id,
+                DrawDate=draw.DrawDate,
+                DrawLocation=draw.DrawLocation,
+                Price=draw.Price,
+                DenominationId=draw.DenominationId,
+            };
+            return Ok(drawDto);
         }
     }
 }

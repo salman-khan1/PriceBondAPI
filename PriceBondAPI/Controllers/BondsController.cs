@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PriceBondAPI.Models;
 using PriceBondAPI.Models.DTOS.BondDto;
 using PriceBondAPI.Models.DTOS.DenominationDto;
+using PriceBondAPI.Repositories.BondRepository;
 
 namespace PriceBondAPI.Controllers
 {
@@ -12,16 +13,18 @@ namespace PriceBondAPI.Controllers
     public class BondsController : ControllerBase
     {
         private readonly PbdatabaseContext _context;
+        private readonly IBondRepository _bondRepository;
 
-        public BondsController(PbdatabaseContext context)
+        public BondsController(PbdatabaseContext context,IBondRepository bondRepository)
         {
             _context = context;
+            _bondRepository = bondRepository;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var bonds =await _context.Bonds.ToListAsync();
+            var bonds =await _bondRepository.GetAllAsync();
 
             //DTO Mapping
             var bondDto = new List<BondDto>();
@@ -32,6 +35,8 @@ namespace PriceBondAPI.Controllers
                     Id = bond.Id,
                     BondNumber = bond.BondNumber,
                     PurchaseDate = bond.PurchaseDate,
+                    UserId=bond.UserId,
+                    DenominationId=bond.DenominationId,
 
                 });
             }
@@ -43,7 +48,7 @@ namespace PriceBondAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var bond = await _context.Bonds.FirstOrDefaultAsync(x => x.Id == id);
+            var bond = await _bondRepository.GetByIdAsync(id);
             if (bond == null)
             {
                 return BadRequest();
@@ -72,8 +77,7 @@ namespace PriceBondAPI.Controllers
                 DenominationId=addBond.DenominationId,
                 UserId = addBond.UserId,
             };
-            await _context.Bonds.AddAsync(bond);
-            await _context.SaveChangesAsync();
+            await _bondRepository.CreateAsync(bond);
 
             var bondDto = new BondDto
             {
@@ -92,15 +96,17 @@ namespace PriceBondAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateBondDto updateBond)
         {
-            var bond = await _context.Bonds.FirstOrDefaultAsync(x => x.Id == id);
-            if (bond == null) { return BadRequest(); }
-            //Map Dto
+            var bond = new Bond
+            {
+                BondNumber=updateBond.BondNumber,
+                PurchaseDate=updateBond.PurchaseDate,
+                UserId=updateBond.UserId,
+                DenominationId=updateBond.DenominationId,
+            };
 
-            bond.BondNumber = updateBond.BondNumber;
-            bond.PurchaseDate = updateBond.PurchaseDate;
-            bond.DenominationId = updateBond.DenominationId;
-            bond.UserId = updateBond.UserId;
-            await _context.SaveChangesAsync();
+            bond = await _bondRepository.UpdateAsync(id, bond);
+
+            if (bond == null) { return BadRequest(); }           
 
             var bondDto = new BondDto
             {
@@ -118,14 +124,20 @@ namespace PriceBondAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var bond = await _context.Bonds.FirstOrDefaultAsync(x => x.Id == id);
+            var bond = await _bondRepository.DeleteAsync(id);
             if (bond == null)
             {
                 return BadRequest();
             }
-            _context.Bonds.Remove(bond);
-            await _context.SaveChangesAsync();
-            return Ok(bond);
+            var bondDto = new BondDto
+            {
+                Id=bond.Id,
+                BondNumber=bond.BondNumber,
+                PurchaseDate=bond.PurchaseDate,
+                UserId=bond.UserId,
+                DenominationId=bond.DenominationId               
+            };
+            return Ok(bondDto);
         }
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PriceBondAPI.Models;
 using PriceBondAPI.Models.DTOS.DenominationDto;
 using PriceBondAPI.Models.DTOS.UserDto;
+using PriceBondAPI.Repositories.DenominationRepository;
 
 namespace PriceBondAPI.Controllers
 {
@@ -12,17 +13,19 @@ namespace PriceBondAPI.Controllers
     public class DenominationController : ControllerBase
     {
         private readonly PbdatabaseContext _context;
+        private readonly IDenominationRepository _denominationRepository;
 
-        public DenominationController(PbdatabaseContext context)
+        public DenominationController(PbdatabaseContext context,IDenominationRepository denominationRepository)
         {
             _context = context;
+            _denominationRepository = denominationRepository;
         }
 
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var denominations =await _context.Denominations.ToListAsync();
+            var denominations =await _denominationRepository.GetAllAsync();
 
             //DTO Mapping
             var denominationDto = new List<DenominationDto>();
@@ -44,7 +47,7 @@ namespace PriceBondAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var denomination =await _context.Denominations.FirstOrDefaultAsync(x => x.Id == id);
+            var denomination =await _denominationRepository.GetByIdAsync(id);
             if (denomination == null)
             {
                 return BadRequest();
@@ -69,8 +72,7 @@ namespace PriceBondAPI.Controllers
                 Value = addDenomination.Value,
                 Description = addDenomination.Description,
             };
-          await _context.Denominations.AddAsync(denomination);
-          await _context.SaveChangesAsync();
+         denomination= await _denominationRepository.CreateAsync(denomination);
 
             var denominationDto = new DenominationDto
             {
@@ -88,13 +90,15 @@ namespace PriceBondAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateDenominationDto updateDenomination)
         {
-            var denomination =await _context.Denominations.FirstOrDefaultAsync(x => x.Id == id);
+            var denomination = new Denomination
+            {
+                Value= updateDenomination.Value,
+                Description = updateDenomination.Description,
+            };
+             denomination = await _denominationRepository.UpdateAsync(id, denomination);
             if (denomination == null) { return BadRequest(); }
             //Map Dto
 
-            denomination.Value = updateDenomination.Value;
-            denomination.Description = updateDenomination.Description;
-            await _context.SaveChangesAsync();
 
             var denominationDto = new DenominationDto
             {
@@ -110,14 +114,19 @@ namespace PriceBondAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            var denomination =await _context.Denominations.FirstOrDefaultAsync(x => x.Id == id);
+            var denomination =await _denominationRepository.DeleteAsync(id);
+
             if (denomination == null)
             {
                 return BadRequest();
             }
-            _context.Denominations.Remove(denomination);
-           await _context.SaveChangesAsync();
-            return Ok(denomination);
+            var denominationDto = new DenominationDto
+            {
+                Id= denomination.Id,
+                Value= denomination.Value,
+                Description = denomination.Description,
+            };
+            return Ok(denominationDto);
         }
     }
 }
