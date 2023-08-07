@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PriceBondAPI.Models;
@@ -21,6 +22,8 @@ namespace PriceBondAPI.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles="Admin,User")]
+
         public async Task<IActionResult> GetAll()
         {
             var users=await _userRepository.GetAllAsync();
@@ -43,6 +46,7 @@ namespace PriceBondAPI.Controllers
 
         [HttpGet]
         [Route("{id}")]
+        [Authorize(Roles = "User")]
         public async Task<IActionResult> Get(int id)
         {
             var user =await _userRepository.GetByIdAsync(id);
@@ -64,6 +68,8 @@ namespace PriceBondAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
+
         public async Task<IActionResult> Create([FromBody] AddUserDto addUserDto)
         {
             var user = new User
@@ -88,6 +94,8 @@ namespace PriceBondAPI.Controllers
 
         [HttpPut]
         [Route("{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateUserDto updateUser)
         {
             //Map dto to domain
@@ -113,6 +121,8 @@ namespace PriceBondAPI.Controllers
 
         [HttpDelete]
         [Route("{id}")]
+        [Authorize(Roles = "Admin")]
+
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
             var user=await _userRepository.DeleteAsync(id);

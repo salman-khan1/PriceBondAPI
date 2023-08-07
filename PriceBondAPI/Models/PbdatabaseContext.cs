@@ -10,8 +10,7 @@ public partial class PbdatabaseContext : DbContext
     {
     }
 
-    public PbdatabaseContext(DbContextOptions<PbdatabaseContext> options)
-        : base(options)
+    public PbdatabaseContext(DbContextOptions<PbdatabaseContext> options) : base(options)
     {
     }
 
